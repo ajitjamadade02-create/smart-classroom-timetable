@@ -1,0 +1,653 @@
+/* =========================================================================
+   app.js — Smart Classroom & Timetable Scheduler, frontend logic.
+   Every function here calls an endpoint defined in app.py and writes into
+   an element id/class defined in index.html. See the header comment in
+   app.py for the full file-to-file map.
+   ========================================================================= */
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+let YEAR_LABELS = [];        // filled from /api/years on first load
+let LOOKUPS = null;          // cached {years,divisions,batches,faculty,classrooms}
+
+// ---------------------------------------------------------------- fetch helper
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: "same-origin",
+    headers: opts.body instanceof FormData ? {} : { "Content-Type": "application/json" },
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function flash(msg, ok = true) {
+  const area = document.getElementById("flashArea");
+  area.innerHTML = `<div class="msg ${ok ? "msg-ok" : "msg-error"}">${msg}</div>`;
+  setTimeout(() => { area.innerHTML = ""; }, 4000);
+}
+
+function esc(s) {
+  return (s ?? "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ================================================================== AUTH
+document.getElementById("tabLogin").onclick = (e) => { e.preventDefault(); switchAuthTab("login"); };
+document.getElementById("tabRegister").onclick = (e) => { e.preventDefault(); switchAuthTab("register"); };
+
+function switchAuthTab(which) {
+  document.getElementById("tabLogin").classList.toggle("active", which === "login");
+  document.getElementById("tabRegister").classList.toggle("active", which === "register");
+  document.getElementById("loginForm").style.display = which === "login" ? "block" : "none";
+  document.getElementById("registerForm").style.display = which === "register" ? "block" : "none";
+  document.getElementById("authHeading").textContent = which === "login" ? "Administrator Login" : "Register Administrator";
+  document.getElementById("authMsg").innerHTML = "";
+}
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api("/api/login", {
+      method: "POST",
+      body: JSON.stringify({
+        login_id: document.getElementById("li_login_id").value,
+        password: document.getElementById("li_password").value,
+      }),
+    });
+    enterApp(data.admin);
+  } catch (err) {
+    document.getElementById("authMsg").innerHTML = `<div class="msg msg-error">${esc(err.error || "Login failed")}</div>`;
+  }
+});
+
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api("/api/register", {
+      method: "POST",
+      body: JSON.stringify({
+        login_id: document.getElementById("rg_login_id").value,
+        name: document.getElementById("rg_name").value,
+        password: document.getElementById("rg_password").value,
+        confirm: document.getElementById("rg_confirm").value,
+      }),
+    });
+    enterApp(data.admin);
+  } catch (err) {
+    document.getElementById("authMsg").innerHTML = `<div class="msg msg-error">${esc(err.error || "Registration failed")}</div>`;
+  }
+});
+
+document.getElementById("logoutBtn").onclick = async (e) => {
+  e.preventDefault();
+  await api("/api/logout", { method: "POST" });
+  location.reload();
+};
+
+function enterApp(admin) {
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("appShell").style.display = "flex";
+  document.getElementById("whoName").textContent = admin.name;
+  showSection("dashboard");
+}
+
+// ================================================================== NAV
+document.querySelectorAll(".nav-link").forEach(link => {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    showSection(link.dataset.section);
+  });
+});
+document.querySelectorAll(".jump-tt").forEach(link => {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    showSection("timetable");
+    setTTView(link.dataset.view);
+  });
+});
+
+const SECTION_LOADERS = {
+  dashboard: loadDashboard,
+  hours: loadHours,
+  breaks: loadBreaks,
+  years: loadYears,
+  divisions: loadDivisions,
+  faculty: loadFaculty,
+  classrooms: loadClassrooms,
+  subjects: loadSubjects,
+  timetable: () => loadTimetable(),
+};
+
+function showSection(name) {
+  document.querySelectorAll(".section-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(`section-${name}`).classList.add("active");
+  document.querySelectorAll("#sideNav .nav-link").forEach(a => a.classList.toggle("active", a.dataset.section === name));
+  const loader = SECTION_LOADERS[name];
+  if (loader) loader();
+}
+
+// ================================================================== LOOKUPS (shared dropdown data)
+async function refreshLookups() {
+  LOOKUPS = await api("/api/lookups");
+  return LOOKUPS;
+}
+
+// ================================================================== DASHBOARD
+async function loadDashboard() {
+  const [{ institute, breaks }, { years }, { divisions }, { faculty }, { classrooms }, { subjects }] = await Promise.all([
+    api("/api/institute"), api("/api/years"), api("/api/divisions"), api("/api/faculty"), api("/api/classrooms"), api("/api/subjects"),
+  ]);
+  document.getElementById("dashInstName").textContent = institute.name;
+  document.getElementById("dashInstHours").textContent = `${institute.day_start} – ${institute.day_end} · ${(institute.working_days || []).length} working days/week`;
+  const rows = [
+    ["03", "Years & semesters configured", years.length, "years"],
+    ["04", "Divisions", divisions.length, "divisions"],
+    ["05", "Faculty", faculty.length, "faculty"],
+    ["06", "Classrooms / Labs", classrooms.length, "classrooms"],
+    ["07", "Subjects", subjects.length, "subjects"],
+    ["02", "Breaks configured", breaks.length, "breaks"],
+  ];
+  document.getElementById("dashCounts").innerHTML = rows.map(([step, label, count, sec]) => `
+    <tr><td class="mono">${step}</td><td>${label}</td><td>${count}</td>
+    <td><a href="#" class="btn btn-ghost btn-sm nav-link" data-section="${sec}">Open</a></td></tr>
+  `).join("");
+  document.querySelectorAll("#dashCounts .nav-link").forEach(a => a.addEventListener("click", (e) => { e.preventDefault(); showSection(a.dataset.section); }));
+}
+
+// ================================================================== HOURS
+function renderDayCheckboxes(containerId, name, checkedList) {
+  renderCheckboxGroup(containerId, name, WEEKDAYS.map(d => ({ value: d, label: d })), checkedList);
+}
+
+// Generic checkbox-group renderer used by hours (working days/holidays) and
+// by the subject form's fixed-day / combine-division / combine-batch pickers
+// — replaces earlier <select multiple> versions of these fields, since
+// checkboxes are far more discoverable than requiring Ctrl/Cmd-click.
+function renderCheckboxGroup(containerId, name, options, checkedValues = []) {
+  const box = document.getElementById(containerId);
+  const checkedStrs = checkedValues.map(String);
+  box.innerHTML = options.map(o => `
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="${name}" value="${o.value}" style="width:auto;" ${checkedStrs.includes(String(o.value)) ? "checked" : ""}> ${esc(o.label)}
+    </label>`).join("") || `<span class="hint">Nothing to pick yet.</span>`;
+}
+
+function checkedValuesIn(containerId) {
+  return [...document.querySelectorAll(`#${containerId} input:checked`)].map(i => i.value);
+}
+
+async function loadHours() {
+  const { institute } = await api("/api/institute");
+  document.getElementById("h_name").value = institute.name || "";
+  document.getElementById("h_start").value = institute.day_start;
+  document.getElementById("h_end").value = institute.day_end;
+  document.getElementById("h_period").value = institute.period_minutes;
+  renderDayCheckboxes("workingDaysBox", "wd", institute.working_days || []);
+  renderDayCheckboxes("holidaysBox", "hd", institute.holidays || []);
+}
+
+document.getElementById("hoursForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const working_days = [...document.querySelectorAll('#workingDaysBox input:checked')].map(i => i.value);
+  const holidays = [...document.querySelectorAll('#holidaysBox input:checked')].map(i => i.value);
+  await api("/api/institute", {
+    method: "POST",
+    body: JSON.stringify({
+      name: document.getElementById("h_name").value,
+      day_start: document.getElementById("h_start").value,
+      day_end: document.getElementById("h_end").value,
+      period_minutes: document.getElementById("h_period").value,
+      working_days, holidays,
+    }),
+  });
+  flash("Institute hours saved.");
+  showSection("breaks");
+});
+
+// ================================================================== BREAKS
+async function loadBreaks() {
+  const { breaks } = await api("/api/institute");
+  document.getElementById("breaksList").innerHTML = breaks.map(b => `
+    <tr><td>${esc(b.label)}</td><td><span class="tag tag-${b.kind === "lunch" ? "lecture" : "tutorial"}">${b.kind}</span></td>
+    <td class="mono">${b.start_time} – ${b.end_time}</td>
+    <td><button class="btn btn-danger btn-sm del-break" data-id="${b.id}">Remove</button></td></tr>
+  `).join("") || `<tr><td colspan="4" class="hint">No breaks configured yet.</td></tr>`;
+  document.querySelectorAll(".del-break").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/breaks/${btn.dataset.id}`, { method: "DELETE" });
+    loadBreaks();
+  }));
+}
+
+document.getElementById("breakForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await api("/api/breaks", {
+    method: "POST",
+    body: JSON.stringify({
+      label: document.getElementById("b_label").value,
+      kind: document.getElementById("b_kind").value,
+      start_time: document.getElementById("b_start").value,
+      end_time: document.getElementById("b_end").value,
+    }),
+  });
+  e.target.reset();
+  flash("Break added.");
+  loadBreaks();
+});
+
+// ================================================================== YEARS
+function syncSem() {
+  const labelSel = document.getElementById("y_label");
+  const opt = labelSel.options[labelSel.selectedIndex];
+  if (!opt) return;
+  const parity = document.getElementById("y_parity").value;
+  document.getElementById("y_sem").value = parity === "odd" ? opt.dataset.odd : opt.dataset.even;
+}
+
+async function loadYears() {
+  const { years, year_labels } = await api("/api/years");
+  YEAR_LABELS = year_labels;
+  document.getElementById("y_label").innerHTML = YEAR_LABELS.map(([code, full, sems]) =>
+    `<option value="${code}" data-odd="${sems[0]}" data-even="${sems[1]}">${code} — ${full}</option>`).join("");
+  syncSem();
+  document.getElementById("yearsList").innerHTML = years.map(y => `
+    <tr><td><b>${esc(y.label)}</b></td><td style="text-transform:capitalize;">${y.parity}</td><td class="mono">${y.sem_no}</td>
+    <td><button class="btn btn-danger btn-sm del-year" data-id="${y.id}">Remove</button></td></tr>
+  `).join("") || `<tr><td colspan="4" class="hint">No years added yet.</td></tr>`;
+  document.querySelectorAll(".del-year").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/years/${btn.dataset.id}`, { method: "DELETE" });
+    loadYears();
+  }));
+}
+document.getElementById("y_parity").addEventListener("change", syncSem);
+document.getElementById("y_label").addEventListener("change", syncSem);
+
+document.getElementById("yearForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await api("/api/years", {
+      method: "POST",
+      body: JSON.stringify({
+        label: document.getElementById("y_label").value,
+        parity: document.getElementById("y_parity").value,
+        sem_no: document.getElementById("y_sem").value,
+      }),
+    });
+    flash("Year/semester added.");
+    loadYears();
+  } catch (err) { flash(err.error || "Could not add year.", false); }
+});
+
+// ================================================================== DIVISIONS
+async function loadDivisions() {
+  await refreshLookups();
+  document.getElementById("d_year").innerHTML = LOOKUPS.years.map(y => `<option value="${y.id}">${y.label} — Sem ${y.sem_no}</option>`).join("");
+  const { divisions } = await api("/api/divisions");
+  document.getElementById("divisionsList").innerHTML = divisions.map(d => `
+    <div class="repeat-row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>${esc(d.name)}</b> <span class="hint">(${d.year_label} Sem ${d.year_sem}) · Class teacher: ${esc(d.class_teacher) || "—"} · ${d.strength} students</span></div>
+        <div style="display:flex; gap:8px;">
+          <a href="/api/divisions/${d.id}/rollcall.pdf" target="_blank" class="btn btn-ghost btn-sm">⬇ Roll Call PDF</a>
+          <button class="btn btn-danger btn-sm del-division" data-id="${d.id}">Remove division</button>
+        </div>
+      </div>
+      <table style="margin-top:10px;"><tr><th>Batch</th><th>Students</th><th></th></tr>
+        ${d.batches.map(b => `<tr><td>${esc(b.name)}</td><td>${b.num_students}</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="${b.id}">Remove</button></td></tr>`).join("") ||
+          `<tr><td colspan="3" class="hint">No batches yet.</td></tr>`}
+      </table>
+      <form class="add-batch-form" data-div="${d.id}" style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" placeholder="B1" required style="width:100px;" name="name">
+        <input type="number" placeholder="Students" min="0" style="width:120px;" name="num_students">
+        <button class="btn btn-ghost btn-sm">+ Add batch</button>
+      </form>
+    </div>
+  `).join("") || `<p class="hint">No divisions yet.</p>`;
+
+  document.querySelectorAll(".del-division").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/divisions/${btn.dataset.id}`, { method: "DELETE" });
+    loadDivisions();
+  }));
+  document.querySelectorAll(".del-batch").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/batches/${btn.dataset.id}`, { method: "DELETE" });
+    loadDivisions();
+  }));
+  document.querySelectorAll(".add-batch-form").forEach(form => form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    await api(`/api/divisions/${form.dataset.div}/batches`, {
+      method: "POST",
+      body: JSON.stringify({ name: form.name.value, num_students: form.num_students.value }),
+    });
+    loadDivisions();
+  }));
+}
+
+document.getElementById("divisionForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await api("/api/divisions", {
+    method: "POST",
+    body: JSON.stringify({
+      year_id: document.getElementById("d_year").value,
+      name: document.getElementById("d_name").value,
+      class_teacher: document.getElementById("d_teacher").value,
+      strength: document.getElementById("d_strength").value,
+    }),
+  });
+  document.getElementById("d_name").value = "";
+  flash("Division added.");
+  loadDivisions();
+});
+
+// ================================================================== FACULTY
+async function loadFaculty() {
+  const { faculty } = await api("/api/faculty");
+  document.getElementById("facultyList").innerHTML = faculty.map(f => `
+    <tr><td>${esc(f.name)}</td><td>${(f.qualifications || []).map(q => `<span class="tag tag-lecture">${esc(q)}</span>`).join(" ")}</td>
+    <td class="mono">${f.max_periods_per_day}</td><td><button class="btn btn-danger btn-sm del-faculty" data-id="${f.id}">Remove</button></td></tr>
+  `).join("") || `<tr><td colspan="4" class="hint">No faculty added yet.</td></tr>`;
+  document.querySelectorAll(".del-faculty").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/faculty/${btn.dataset.id}`, { method: "DELETE" });
+    loadFaculty();
+  }));
+}
+
+document.getElementById("facultyForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await api("/api/faculty", {
+    method: "POST",
+    body: JSON.stringify({
+      name: document.getElementById("f_name").value,
+      qualifications: document.getElementById("f_quals").value,
+      max_periods_per_day: document.getElementById("f_max").value,
+    }),
+  });
+  e.target.reset();
+  flash("Faculty added.");
+  loadFaculty();
+});
+
+// ================================================================== CLASSROOMS
+async function loadClassrooms() {
+  const { classrooms } = await api("/api/classrooms");
+  document.getElementById("classroomsList").innerHTML = classrooms.map(c => `
+    <tr><td>${esc(c.room_no)}</td><td><span class="tag ${c.room_type === "lab" ? "tag-lab" : "tag-lecture"}">${c.room_type}</span></td>
+    <td class="mono">${c.capacity}</td><td><button class="btn btn-danger btn-sm del-room" data-id="${c.id}">Remove</button></td></tr>
+  `).join("") || `<tr><td colspan="4" class="hint">No rooms added yet.</td></tr>`;
+  document.querySelectorAll(".del-room").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/classrooms/${btn.dataset.id}`, { method: "DELETE" });
+    loadClassrooms();
+  }));
+}
+
+document.getElementById("classroomForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await api("/api/classrooms", {
+    method: "POST",
+    body: JSON.stringify({
+      room_no: document.getElementById("c_room").value,
+      room_type: document.getElementById("c_type").value,
+      capacity: document.getElementById("c_cap").value,
+    }),
+  });
+  e.target.reset();
+  flash("Room added.");
+  loadClassrooms();
+});
+
+// ================================================================== SUBJECTS
+function refreshCombineOptions() {
+  // Combine-divisions must stay scoped to the year currently selected in
+  // the subject form — combining SY A with a TY division makes no sense,
+  // and showing everyone's divisions was the source of the "can't choose
+  // divisions to combine" confusion.
+  const yearId = document.getElementById("s_year").value;
+  const divsInYear = LOOKUPS.divisions.filter(d => String(d.year_id) === String(yearId));
+  renderCheckboxGroup("s_combdiv_box", "combine_divisions", divsInYear.map(d => ({ value: d.id, label: d.name })));
+}
+
+async function loadSubjects() {
+  await refreshLookups();
+  document.getElementById("s_year").innerHTML = LOOKUPS.years.map(y => `<option value="${y.id}">${y.label} — Sem ${y.sem_no}</option>`).join("");
+  renderCheckboxGroup("s_fixedday_box", "external_fixed_days", WEEKDAYS.map(d => ({ value: d, label: d })));
+  document.getElementById("s_year").onchange = refreshCombineOptions;
+  refreshCombineOptions();
+
+  const { subjects } = await api("/api/subjects");
+  const divOptions = LOOKUPS.divisions.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+
+  document.getElementById("subjectsList").innerHTML = subjects.map(s => `
+    <div class="repeat-row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <b>${esc(s.code)} — ${esc(s.name)}</b> <span class="tag tag-${s.type}">${s.type}</span>
+          <span class="hint">${s.year_label} Sem ${s.year_sem} · ${s.lectures_per_week}/week
+            ${s.priority_first_period ? " · 1st period" : ""}${(s.external_fixed_days && s.external_fixed_days.length) ? ` · fixed on ${s.external_fixed_days.join(", ")}` : ""}
+            ${s.multi_faculty ? " · multi-faculty" : ""}${s.syllabus_name ? ` · <a href="/api/subjects/${s.id}/syllabus" target="_blank">syllabus</a>` : ""}</span>
+        </div>
+        <button class="btn btn-danger btn-sm del-subject" data-id="${s.id}">Remove</button>
+      </div>
+      <table style="margin-top:8px;"><tr><th>Faculty</th><th>Division</th><th>Batch(es)</th><th></th></tr>
+        ${s.allocations.map(a => `<tr><td>${esc(a.faculty_name)}</td><td>${esc(a.division_name)}</td><td>${(a.batch_names && a.batch_names.length) ? esc(a.batch_names.join(", ")) : "— whole division —"}</td>
+          <td><button class="btn btn-danger btn-sm del-alloc" data-id="${a.id}">Remove</button></td></tr>`).join("") ||
+          `<tr><td colspan="4" class="hint">No faculty allocated yet.</td></tr>`}
+      </table>
+      <form class="alloc-form" data-subj="${s.id}" style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; align-items:flex-start;">
+        <div>
+          <div class="hint" style="margin-bottom:4px;">Faculty (check 2+ to co-teach)</div>
+          <div style="max-height:110px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:8px; min-width:180px;">
+            ${LOOKUPS.faculty.map(f => `
+              <label style="font-weight:400; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                <input type="checkbox" name="faculty_id" value="${f.id}" style="width:auto;"> ${esc(f.name)}
+              </label>`).join("") || `<span class="hint">Add faculty first (step 05).</span>`}
+          </div>
+        </div>
+        <div>
+          <div class="hint" style="margin-bottom:4px;">Division</div>
+          <select name="division_id" required><option value="">Division…</option>${divOptions}</select>
+        </div>
+        <div>
+          <div class="hint" style="margin-bottom:4px;">Batches (leave unchecked for whole division; check 2+ from the same division to merge them into one lab with a single teacher)</div>
+          <div class="batch-box" style="max-height:110px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:8px; min-width:200px;">
+            ${LOOKUPS.batches.map(b => `
+              <label data-div="${b.division_id}" style="font-weight:400; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                <input type="checkbox" name="batch_id" value="${b.id}" style="width:auto;"> ${esc(b.division_name)} – ${esc(b.name)}
+              </label>`).join("") || `<span class="hint">No batches yet.</span>`}
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;">+ Allocate</button>
+      </form>
+    </div>
+  `).join("") || `<p class="hint">No subjects yet.</p>`;
+
+  // Once a division is picked, only show that division's batches — and
+  // uncheck any that fall outside it, so a submit can't mix batches from
+  // two different divisions into one nonsensical "merge".
+  document.querySelectorAll(".alloc-form").forEach(form => {
+    const divSel = form.querySelector('select[name="division_id"]');
+    const syncBatchVisibility = () => {
+      form.querySelectorAll(".batch-box label").forEach(lbl => {
+        const matches = !divSel.value || String(lbl.dataset.div) === String(divSel.value);
+        lbl.style.display = matches ? "flex" : "none";
+        if (!matches) lbl.querySelector("input").checked = false;
+      });
+    };
+    divSel.addEventListener("change", syncBatchVisibility);
+    syncBatchVisibility();
+  });
+
+  document.querySelectorAll(".del-subject").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/subjects/${btn.dataset.id}`, { method: "DELETE" });
+    loadSubjects();
+  }));
+  document.querySelectorAll(".del-alloc").forEach(btn => btn.addEventListener("click", async () => {
+    await api(`/api/allocations/${btn.dataset.id}`, { method: "DELETE" });
+    loadSubjects();
+  }));
+  document.querySelectorAll(".alloc-form").forEach(form => form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const facultyIds = [...form.querySelectorAll('input[name="faculty_id"]:checked')].map(i => i.value);
+    const batchIds = [...form.querySelectorAll('input[name="batch_id"]:checked')].map(i => i.value);
+    if (!facultyIds.length) { flash("Select at least one faculty.", false); return; }
+    try {
+      const result = await api(`/api/subjects/${form.dataset.subj}/allocate`, {
+        method: "POST",
+        body: JSON.stringify({
+          faculty_ids: facultyIds, division_id: form.division_id.value, batch_ids: batchIds,
+        }),
+      });
+      flash(result.count > 1 ? `${result.count} faculty allocated (co-teaching).` : "Faculty allocated.");
+      loadSubjects();
+    } catch (err) { flash(err.error || "Could not allocate.", false); }
+  }));
+}
+
+document.getElementById("subjectForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append("year_id", document.getElementById("s_year").value);
+  fd.append("code", document.getElementById("s_code").value);
+  fd.append("name", document.getElementById("s_name").value);
+  fd.append("type", document.getElementById("s_type").value);
+  fd.append("lectures_per_week", document.getElementById("s_lpw").value);
+  fd.append("priority_first_period", document.getElementById("s_priority").checked ? "true" : "false");
+  checkedValuesIn("s_fixedday_box").forEach(v => fd.append("external_fixed_days", v));
+  fd.append("multi_faculty", document.getElementById("s_multi").checked ? "true" : "false");
+  checkedValuesIn("s_combdiv_box").forEach(v => fd.append("combine_divisions", v));
+  const file = document.getElementById("s_syllabus").files[0];
+  if (file) fd.append("syllabus", file);
+
+  await api("/api/subjects", { method: "POST", body: fd });
+  e.target.reset();
+  refreshCombineOptions(); // form.reset() doesn't fire s_year's onchange, so resync manually
+  flash("Subject added. Allocate faculty to it below.");
+  loadSubjects();
+});
+
+// ================================================================== TIMETABLE
+let currentTTView = "master";
+let currentTTId = null;
+
+document.querySelectorAll(".tt-tab").forEach(btn => btn.addEventListener("click", () => setTTView(btn.dataset.view)));
+document.getElementById("generateBtn").addEventListener("click", async () => {
+  try {
+    const result = await api("/api/timetable/generate", { method: "POST" });
+    flash(result.unplaced.length
+      ? `Generated with ${result.unplaced.length} session(s) that could not be placed.`
+      : `Timetable generated — ${result.placed} periods placed.`, result.unplaced.length === 0);
+    loadTimetable();
+  } catch (err) { flash(err.error || "Could not generate timetable.", false); }
+});
+
+function setTTView(view) {
+  currentTTView = view;
+  currentTTId = null;
+  document.querySelectorAll(".tt-tab").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  document.getElementById("ttPill").textContent = view === "master" ? "master" : `${view}-wise`;
+  loadTimetable();
+}
+
+async function populateTTPicker() {
+  const picker = document.getElementById("ttPicker");
+  if (currentTTView === "master") { picker.style.display = "none"; return; }
+  await refreshLookups();
+  let options = [];
+  if (currentTTView === "class") options = LOOKUPS.divisions.map(d => ({ id: d.id, label: `${d.name} (${d.year_label})` }));
+  if (currentTTView === "classroom") options = LOOKUPS.classrooms.filter(c => c.room_type === "classroom").map(c => ({ id: c.id, label: `${c.room_no} · cap ${c.capacity}` }));
+  if (currentTTView === "lab") options = LOOKUPS.classrooms.filter(c => c.room_type === "lab").map(c => ({ id: c.id, label: `${c.room_no} · cap ${c.capacity}` }));
+  if (currentTTView === "faculty") options = LOOKUPS.faculty.map(f => ({ id: f.id, label: f.name }));
+
+  picker.style.display = options.length ? "block" : "none";
+  picker.innerHTML = options.map(o => `<option value="${o.id}">${esc(o.label)}</option>`).join("");
+  if (options.length) currentTTId = currentTTId || options[0].id;
+  picker.value = currentTTId;
+  picker.onchange = () => { currentTTId = picker.value; renderTimetable(); };
+}
+
+async function loadTimetable() {
+  await populateTTPicker();
+  await renderTimetable();
+}
+
+function endpointFor(view, id) {
+  if (view === "master") return "/api/timetable/master";
+  if (view === "class") return `/api/timetable/class/${id}`;
+  if (view === "classroom" || view === "lab") return `/api/timetable/classroom/${id}`;
+  if (view === "faculty") return `/api/timetable/faculty/${id}`;
+}
+
+async function renderTimetable() {
+  const wrap = document.getElementById("ttGridWrap");
+  const summary = document.getElementById("ttSummary");
+  document.getElementById("ttTitle").textContent =
+    currentTTView === "master" ? "Master Timetable" : document.getElementById("ttPicker").selectedOptions[0]?.textContent || "Timetable";
+  document.getElementById("ttSubtitle").textContent = currentTTView === "master" ? "Every division, room and faculty in one ledger." : "";
+
+  if ((currentTTView !== "master") && !currentTTId) {
+    wrap.innerHTML = `<p class="hint">Add at least one item in this category first (steps 04–06).</p>`;
+    summary.innerHTML = "";
+    return;
+  }
+
+  const data = await api(endpointFor(currentTTView, currentTTId));
+  if (!data.periods.length) {
+    wrap.innerHTML = `<p class="hint">Set up institute hours (step 01) first, then Generate.</p>`;
+    summary.innerHTML = "";
+    return;
+  }
+
+  if (currentTTView === "master" && data.last_run) {
+    const lr = data.last_run;
+    summary.innerHTML = `<div class="panel" style="padding:16px 24px;">
+      <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+        <span class="pill" style="background:var(--sage-tint); color:var(--sage);">${lr.placed_count} periods placed</span>
+        ${lr.unplaced.length ? `<span class="pill" style="background:var(--brick-tint); color:var(--brick);">${lr.unplaced.length} unplaced</span>` : ""}
+      </div>
+      ${lr.unplaced.length ? `<table style="margin-top:12px;"><tr><th>Subject</th><th>Division</th><th>Reason</th></tr>
+        ${lr.unplaced.map(u => `<tr><td>${esc(u.subject)}</td><td>${esc(u.division)}</td><td>${esc(u.reason)}</td></tr>`).join("")}
+      </table>` : ""}
+    </div>`;
+  } else {
+    summary.innerHTML = "";
+  }
+
+  wrap.innerHTML = buildGridHTML(data.periods, data.working_days, data.entries);
+}
+
+function entryCardHTML(e) {
+  const fac = (e.faculty_names || []).join(" & ");
+  return `<div class="entry-card entry-${e.entry_type}" title="${esc(e.room_no || "")}">
+    <b>${esc(e.room_no || "Room")}</b>
+    <div class="entry-subject"><strong>${esc(e.subject_code)}</strong></div>
+    <div class="meta">${esc(e.division_name || "")}${e.batch_name ? " · " + esc(e.batch_name) : ""}<br>${esc(fac)}</div>
+  </div>`;
+}
+
+function buildGridHTML(periods, workingDays, entries) {
+  const head = `<tr><th class="corner"></th>${workingDays.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  const rows = periods.map(p => {
+    const time = `${String(Math.floor(p.start / 60)).padStart(2, "0")}:${String(p.start % 60).padStart(2, "0")}–${String(Math.floor(p.end / 60)).padStart(2, "0")}:${String(p.end % 60).padStart(2, "0")}`;
+    const cells = workingDays.map(d => {
+      if (p.is_break) return `<td class="cell-break"><div class="cell-label">${esc(p.label)}</div></td>`;
+      const rows = (entries[`${d}|${p.index}`] || []).slice().sort((a, b) =>
+        (a.room_no || "").localeCompare(b.room_no || "", undefined, { numeric: true, sensitivity: "base" })
+      );
+      // Keep every assignment for this exact day/time inside ONE timetable
+      // cell. This allows, for example, CS03 A1&A2 in LAB-1 and CS04 A3&A4
+      // in LAB-2 at 10:00–12:00, without creating another time/day column.
+      const inner = rows.length ? rows.map(entryCardHTML).join("") : `<div class="empty-slot">—</div>`;
+      return `<td><div class="cell-slot">${inner}</div></td>`;
+    }).join("");
+    return `<tr><td class="time-col">${time}${p.is_break ? `<br><span style="text-transform:uppercase;">${esc(p.label)}</span>` : ""}</td>${cells}</tr>`;
+  }).join("");
+  return `<div class="tt-wrap"><table class="tt-grid">${head}${rows}</table></div>`;
+}
+
+// ================================================================== BOOT
+(async function boot() {
+  try {
+    const { admin } = await api("/api/me");
+    enterApp(admin);
+  } catch {
+    // not logged in — auth screen (already visible by default) stays as-is
+  }
+})();

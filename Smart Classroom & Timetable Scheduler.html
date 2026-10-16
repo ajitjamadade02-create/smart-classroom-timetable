@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!-- saved from url=(0022)http://127.0.0.1:5000/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Classroom &amp; Timetable Scheduler</title>
+<link rel="stylesheet" href="./Smart Classroom &amp; Timetable Scheduler_files/style.css">
+</head>
+<body>
+
+<!-- ============================= AUTH SCREEN ============================= -->
+<div id="authScreen" class="auth-shell" style="display: none;">
+  <div class="ledger-card auth-card">
+    <div class="auth-eyebrow">Smart Classroom &amp; Timetable Scheduler</div>
+    <h1 id="authHeading">Administrator Login</h1>
+    <div class="auth-tabs">
+      <a href="http://127.0.0.1:5000/#" id="tabLogin" class="active">Log in</a>
+      <a href="http://127.0.0.1:5000/#" id="tabRegister" class="">Register</a>
+    </div>
+    <div id="authMsg"></div>
+
+    <form id="loginForm" style="display: block;">
+      <div class="field"><label for="li_login_id">Login ID</label><input type="text" id="li_login_id" required="" autocomplete="username"></div>
+      <div class="field"><label for="li_password">Password</label><input type="password" id="li_password" required="" autocomplete="current-password"></div>
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+
+    <form id="registerForm" style="display: none;">
+      <div class="field"><label for="rg_login_id">Login ID</label><input type="text" id="rg_login_id" required=""></div>
+      <div class="field"><label for="rg_name">Full name</label><input type="text" id="rg_name" required=""></div>
+      <div class="field"><label for="rg_password">Password</label><input type="password" id="rg_password" required=""></div>
+      <div class="field"><label for="rg_confirm">Confirm password</label><input type="password" id="rg_confirm" required=""></div>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============================= APP SHELL ============================= -->
+<div id="appShell" class="app-shell" style="display: flex;">
+  <aside class="side-rail">
+    <div class="side-brand">Institute Ledger<small>Timetable Scheduler</small></div>
+    <ul class="step-nav" id="sideNav">
+      <li><a href="http://127.0.0.1:5000/#" data-section="dashboard" class="nav-link"><span class="step-idx">•</span> Overview</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="hours" class="nav-link"><span class="step-idx">01</span> Institute Hours</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="breaks" class="nav-link"><span class="step-idx">02</span> Breaks</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="years" class="nav-link"><span class="step-idx">03</span> Years &amp; Semesters</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="divisions" class="nav-link"><span class="step-idx">04</span> Divisions &amp; Batches</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="faculty" class="nav-link"><span class="step-idx">05</span> Faculty</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="classrooms" class="nav-link"><span class="step-idx">06</span> Rooms &amp; Labs</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="subjects" class="nav-link"><span class="step-idx">07</span> Subjects &amp; Allocation</a></li>
+      <li><a href="http://127.0.0.1:5000/#" data-section="timetable" class="nav-link active"><span class="step-idx">08</span> Generate &amp; View</a></li>
+    </ul>
+    <div class="side-foot">
+      Signed in as <b id="whoName">Parshuram Dipak Ghodake</b><br>
+      <a href="http://127.0.0.1:5000/#" id="logoutBtn">Log out →</a>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <div id="flashArea"></div>
+
+    <!-- ---------------- Dashboard ---------------- -->
+    <section id="section-dashboard" class="section-panel">
+      <div class="topbar">
+        <div><div class="pill">Overview</div><h1 id="dashInstName" style="margin-top:8px;">My Institute</h1>
+        <div class="who" id="dashInstHours">09:00 – 17:00 · 5 working days/week</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Setup progress</h2><span class="sub">Walk through steps 01–07, then generate the timetable.</span></div>
+        <table><tbody id="dashCounts">
+    <tr><td class="mono">03</td><td>Years &amp; semesters configured</td><td>1</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="years">Open</a></td></tr>
+  
+    <tr><td class="mono">04</td><td>Divisions</td><td>3</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="divisions">Open</a></td></tr>
+  
+    <tr><td class="mono">05</td><td>Faculty</td><td>0</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="faculty">Open</a></td></tr>
+  
+    <tr><td class="mono">06</td><td>Classrooms / Labs</td><td>0</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="classrooms">Open</a></td></tr>
+  
+    <tr><td class="mono">07</td><td>Subjects</td><td>0</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="subjects">Open</a></td></tr>
+  
+    <tr><td class="mono">02</td><td>Breaks configured</td><td>2</td>
+    <td><a href="http://127.0.0.1:5000/#" class="btn btn-ghost btn-sm nav-link" data-section="breaks">Open</a></td></tr>
+  </tbody></table>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Timetables</h2><span class="sub">All five views read from one generated schedule.</span></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a href="http://127.0.0.1:5000/#" class="btn btn-primary jump-tt" data-view="master">Master timetable</a>
+          <a href="http://127.0.0.1:5000/#" class="btn btn-ghost jump-tt" data-view="class">Class-wise</a>
+          <a href="http://127.0.0.1:5000/#" class="btn btn-ghost jump-tt" data-view="classroom">Classroom-wise</a>
+          <a href="http://127.0.0.1:5000/#" class="btn btn-ghost jump-tt" data-view="lab">Lab-wise</a>
+          <a href="http://127.0.0.1:5000/#" class="btn btn-ghost jump-tt" data-view="faculty">Faculty-wise</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- Hours ---------------- -->
+    <section id="section-hours" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">01</div><div><h1>Institute Hours</h1><div class="who">School/college day span, period length, working days &amp; holidays.</div></div></div>
+      <div class="panel">
+        <form id="hoursForm">
+          <div class="field"><label for="h_name">Institute name</label><input type="text" id="h_name"></div>
+          <div class="field-row">
+            <div class="field"><label for="h_start">Day starts at</label><input type="time" id="h_start" required=""></div>
+            <div class="field"><label for="h_end">Day ends at</label><input type="time" id="h_end" required=""></div>
+            <div class="field"><label for="h_period">Period length (minutes)</label><input type="number" id="h_period" min="20" max="120" required=""></div>
+          </div>
+          <div class="field"><label>Working days</label><div class="field-row" id="workingDaysBox">
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Mon" style="width:auto;"> Mon
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Tue" style="width:auto;" checked=""> Tue
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Wed" style="width:auto;" checked=""> Wed
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Thu" style="width:auto;" checked=""> Thu
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Fri" style="width:auto;" checked=""> Fri
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Sat" style="width:auto;" checked=""> Sat
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="wd" value="Sun" style="width:auto;"> Sun
+    </label></div></div>
+          <div class="field"><label>Holidays (weekly off)</label><div class="field-row" id="holidaysBox">
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Mon" style="width:auto;" checked=""> Mon
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Tue" style="width:auto;"> Tue
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Wed" style="width:auto;"> Wed
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Thu" style="width:auto;"> Thu
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Fri" style="width:auto;"> Fri
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Sat" style="width:auto;"> Sat
+    </label>
+    <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+      <input type="checkbox" name="hd" value="Sun" style="width:auto;" checked=""> Sun
+    </label></div></div>
+          <div class="wizard-nav"><span></span><button type="submit" class="btn btn-primary">Save &amp; continue →</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------------- Breaks ---------------- -->
+    <section id="section-breaks" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">02</div><div><h1>Short Breaks &amp; Lunch</h1><div class="who">Add as many as your institute needs.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a break</h2></div>
+        <form id="breakForm">
+          <div class="field-row">
+            <div class="field"><label for="b_label">Label</label><input type="text" id="b_label" placeholder="Lunch Break" required=""></div>
+            <div class="field"><label for="b_kind">Type</label><select id="b_kind"><option value="short">Short break</option><option value="lunch">Lunch break</option></select></div>
+            <div class="field"><label for="b_start">Starts</label><input type="time" id="b_start" required=""></div>
+            <div class="field"><label for="b_end">Ends</label><input type="time" id="b_end" required=""></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add break</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Configured breaks</h2></div>
+        <table><tbody><tr><th>Label</th><th>Type</th><th>Window</th><th></th></tr></tbody><tbody id="breaksList">
+    <tr><td>short break</td><td><span class="tag tag-tutorial">short</span></td>
+    <td class="mono">11:00 – 11:15</td>
+    <td><button class="btn btn-danger btn-sm del-break" data-id="1">Remove</button></td></tr>
+  
+    <tr><td>lunch break</td><td><span class="tag tag-lecture">lunch</span></td>
+    <td class="mono">13:15 – 14:00</td>
+    <td><button class="btn btn-danger btn-sm del-break" data-id="3">Remove</button></td></tr>
+  </tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="hours">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="years">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Years ---------------- -->
+    <section id="section-years" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">03</div><div><h1>Years &amp; Semesters</h1><div class="who">Choose the term, then the year — semester number fills in automatically.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a year/semester</h2></div>
+        <form id="yearForm">
+          <div class="field-row">
+            <div class="field"><label for="y_parity">Term</label><select id="y_parity"><option value="odd">Odd semester</option><option value="even">Even semester</option></select></div>
+            <div class="field"><label for="y_label">Year</label><select id="y_label"><option value="FY" data-odd="I" data-even="II">FY — First Year</option><option value="SY" data-odd="III" data-even="IV">SY — Second Year</option><option value="TY" data-odd="V" data-even="VI">TY — Third Year</option><option value="LY" data-odd="VII" data-even="VIII">LY — Last Year</option></select></div>
+            <div class="field"><label for="y_sem">Semester</label><input type="text" id="y_sem" class="mono" readonly=""></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add year/semester</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Configured</h2></div>
+        <table><tbody><tr><th>Year</th><th>Term</th><th>Semester</th><th></th></tr></tbody><tbody id="yearsList">
+    <tr><td><b>SY</b></td><td style="text-transform:capitalize;">odd</td><td class="mono">III</td>
+    <td><button class="btn btn-danger btn-sm del-year" data-id="1">Remove</button></td></tr>
+  </tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="breaks">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="divisions">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Divisions ---------------- -->
+    <section id="section-divisions" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">04</div><div><h1>Divisions &amp; Batches</h1><div class="who">e.g. SY A, SY B, SY C, each with a class teacher; split into batches for labs.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a division</h2></div>
+        <form id="divisionForm">
+          <div class="field-row">
+            <div class="field"><label for="d_year">Year / Semester</label><select id="d_year" required=""><option value="1">SY — Sem III</option></select></div>
+            <div class="field"><label for="d_name">Division name</label><input type="text" id="d_name" placeholder="SY A" required=""></div>
+            <div class="field"><label for="d_teacher">Class teacher</label><input type="text" id="d_teacher" placeholder="Prof. Rao"></div>
+            <div class="field"><label for="d_strength">No. of students</label><input type="number" id="d_strength" min="0" value="60"></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add division</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Divisions &amp; their batches</h2></div>
+        <div id="divisionsList">
+    <div class="repeat-row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>SY-A</b> <span class="hint">(SY Sem III) · Class teacher: Buwa Mam · 76 students</span></div>
+        <button class="btn btn-danger btn-sm del-division" data-id="1">Remove division</button>
+      </div>
+      <table style="margin-top:10px;"><tbody><tr><th>Batch</th><th>Students</th><th></th></tr>
+        <tr><td>A1</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="1">Remove</button></td></tr><tr><td>A2</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="2">Remove</button></td></tr><tr><td>A3</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="3">Remove</button></td></tr><tr><td>A4</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="4">Remove</button></td></tr>
+      </tbody></table>
+      <form class="add-batch-form" data-div="1" style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" placeholder="B1" required="" style="width:100px;" name="name">
+        <input type="number" placeholder="Students" min="0" style="width:120px;" name="num_students">
+        <button class="btn btn-ghost btn-sm">+ Add batch</button>
+      </form>
+    </div>
+  
+    <div class="repeat-row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>SY-B</b> <span class="hint">(SY Sem III) · Class teacher: Sharvari Mam · 76 students</span></div>
+        <button class="btn btn-danger btn-sm del-division" data-id="2">Remove division</button>
+      </div>
+      <table style="margin-top:10px;"><tbody><tr><th>Batch</th><th>Students</th><th></th></tr>
+        <tr><td>B1</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="5">Remove</button></td></tr><tr><td>B2</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="6">Remove</button></td></tr><tr><td>B3</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="7">Remove</button></td></tr><tr><td>B4</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="8">Remove</button></td></tr>
+      </tbody></table>
+      <form class="add-batch-form" data-div="2" style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" placeholder="B1" required="" style="width:100px;" name="name">
+        <input type="number" placeholder="Students" min="0" style="width:120px;" name="num_students">
+        <button class="btn btn-ghost btn-sm">+ Add batch</button>
+      </form>
+    </div>
+  
+    <div class="repeat-row">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>SY-C</b> <span class="hint">(SY Sem III) · Class teacher: Kmal Jadhav Mam · 76 students</span></div>
+        <button class="btn btn-danger btn-sm del-division" data-id="3">Remove division</button>
+      </div>
+      <table style="margin-top:10px;"><tbody><tr><th>Batch</th><th>Students</th><th></th></tr>
+        <tr><td>C1</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="9">Remove</button></td></tr><tr><td>C2</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="10">Remove</button></td></tr><tr><td>C3</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="11">Remove</button></td></tr><tr><td>C4</td><td>20</td>
+          <td><button class="btn btn-danger btn-sm del-batch" data-id="12">Remove</button></td></tr>
+      </tbody></table>
+      <form class="add-batch-form" data-div="3" style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" placeholder="B1" required="" style="width:100px;" name="name">
+        <input type="number" placeholder="Students" min="0" style="width:120px;" name="num_students">
+        <button class="btn btn-ghost btn-sm">+ Add batch</button>
+      </form>
+    </div>
+  </div>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="years">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="faculty">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Faculty ---------------- -->
+    <section id="section-faculty" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">05</div><div><h1>Faculty</h1><div class="who">Name, subjects they're qualified to teach, and a daily period cap.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add faculty</h2></div>
+        <form id="facultyForm">
+          <div class="field-row">
+            <div class="field"><label for="f_name">Name</label><input type="text" id="f_name" placeholder="Prof. Anita Deshmukh" required=""></div>
+            <div class="field"><label for="f_quals">Qualified subjects (comma separated codes)</label><input type="text" id="f_quals" placeholder="CS301, CS304"></div>
+            <div class="field"><label for="f_max">Max periods/day</label><input type="number" id="f_max" value="6" min="1" max="10"></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add faculty</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Faculty list</h2></div>
+        <table><tbody><tr><th>Name</th><th>Qualified for</th><th>Max/day</th><th></th></tr></tbody><tbody id="facultyList"><tr><td colspan="4" class="hint">No faculty added yet.</td></tr></tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="divisions">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="classrooms">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Classrooms ---------------- -->
+    <section id="section-classrooms" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">06</div><div><h1>Classrooms &amp; Labs</h1><div class="who">Room number, type, and capacity.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a room</h2></div>
+        <form id="classroomForm">
+          <div class="field-row">
+            <div class="field"><label for="c_room">Room / lab number</label><input type="text" id="c_room" placeholder="LH-204" required=""></div>
+            <div class="field"><label for="c_type">Type</label><select id="c_type"><option value="classroom">Classroom</option><option value="lab">Lab</option></select></div>
+            <div class="field"><label for="c_cap">Capacity</label><input type="number" id="c_cap" value="60" min="1" required=""></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add room</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Rooms</h2></div>
+        <table><tbody><tr><th>Room</th><th>Type</th><th>Capacity</th><th></th></tr></tbody><tbody id="classroomsList"><tr><td colspan="4" class="hint">No rooms added yet.</td></tr></tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="faculty">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="subjects">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Subjects ---------------- -->
+    <section id="section-subjects" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">07</div><div><h1>Subjects &amp; Faculty Allocation</h1><div class="who">Lecture / Lab / Tutorial, weekly load, syllabus upload, special-case constraints.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a subject</h2></div>
+        <form id="subjectForm">
+          <div class="field-row">
+            <div class="field"><label for="s_year">Year / Semester</label><select id="s_year" required=""><option value="1">SY — Sem III</option></select></div>
+            <div class="field"><label for="s_code">Subject code</label><input type="text" id="s_code" placeholder="CS304" required=""></div>
+            <div class="field"><label for="s_name">Subject name</label><input type="text" id="s_name" placeholder="Database Systems" required=""></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="s_type">Delivery type</label><select id="s_type"><option value="lecture">Lecture</option><option value="lab">Lab</option><option value="tutorial">Tutorial</option></select>
+              <div class="hint">Lecture = 1 period. Lab/Tutorial = 2 back-to-back periods, same faculty.</div></div>
+            <div class="field"><label for="s_lpw">Sessions / week</label><input type="number" id="s_lpw" value="3" min="1" max="10" required=""></div>
+            <div class="field"><label for="s_syllabus">Syllabus (PDF/DOC)</label><input type="file" id="s_syllabus"></div>
+          </div>
+          <h3 style="margin-top:22px;">Special-case constraints</h3>
+          <div class="field-row">
+            <div class="field"><label style="font-weight:400; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="s_priority" style="width:auto;"> Must be scheduled in period 1</label></div>
+            <div class="field"><label for="s_fixedday">Externally fixed day (optional)</label><select id="s_fixedday"><option value="">— solver chooses —</option><option value="Mon">Mon</option><option value="Tue">Tue</option><option value="Wed">Wed</option><option value="Thu">Thu</option><option value="Fri">Fri</option><option value="Sat">Sat</option><option value="Sun">Sun</option></select></div>
+            <div class="field"><label style="font-weight:400; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="s_multi" style="width:auto;"> Multiple faculty co-teach (e.g. project presentations)</label></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="s_combdiv">Combine with these divisions (same time, split by room)</label><select id="s_combdiv" multiple="" size="4"><option value="1">SY-A</option><option value="2">SY-B</option><option value="3">SY-C</option></select></div>
+            <div class="field"><label for="s_combbatch">Merge these batches into one lab session</label><select id="s_combbatch" multiple="" size="4"><option value="1">SY-A – A1</option><option value="2">SY-A – A2</option><option value="3">SY-A – A3</option><option value="4">SY-A – A4</option><option value="5">SY-B – B1</option><option value="6">SY-B – B2</option><option value="7">SY-B – B3</option><option value="8">SY-B – B4</option><option value="9">SY-C – C1</option><option value="10">SY-C – C2</option><option value="11">SY-C – C3</option><option value="12">SY-C – C4</option></select></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add subject</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Subjects &amp; faculty allocation</h2></div>
+        <div id="subjectsList"><p class="hint">No subjects yet.</p></div>
+      </div>
+      <div class="wizard-nav"><a href="http://127.0.0.1:5000/#" class="btn btn-ghost nav-link" data-section="classrooms">← Back</a><a href="http://127.0.0.1:5000/#" class="btn btn-primary nav-link" data-section="timetable">Generate timetable →</a></div>
+    </section>
+
+    <!-- ---------------- Timetable ---------------- -->
+    <section id="section-timetable" class="section-panel active">
+      <div class="topbar">
+        <div><div class="pill" id="ttPill">master</div><h1 id="ttTitle" style="margin-top:8px;">Master Timetable</h1><div class="who" id="ttSubtitle">Every division, room and faculty in one ledger.</div></div>
+        <button id="generateBtn" class="btn btn-primary">↻ Generate / Regenerate</button>
+      </div>
+      <div class="tt-toolbar">
+        <button class="btn btn-ghost btn-sm tt-tab active" data-view="master">Master</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="class">Class-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="classroom">Classroom-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="lab">Lab-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="faculty">Faculty-wise</button>
+        <select id="ttPicker" style="display:none; max-width:240px;"></select>
+      </div>
+      <div id="ttSummary"></div>
+      <div class="panel">
+        <div id="ttGridWrap"><div class="tt-wrap"><table class="tt-grid"><tbody><tr><th class="corner"></th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr><td class="time-col">09:00–10:00</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">10:00–11:00</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">11:00–11:15<br><span style="text-transform:uppercase;">short break</span></td><td class="cell-break"><div class="cell-label">short break</div></td><td class="cell-break"><div class="cell-label">short break</div></td><td class="cell-break"><div class="cell-label">short break</div></td><td class="cell-break"><div class="cell-label">short break</div></td><td class="cell-break"><div class="cell-label">short break</div></td></tr><tr><td class="time-col">11:15–12:15</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">12:15–13:15</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">13:15–14:00<br><span style="text-transform:uppercase;">lunch break</span></td><td class="cell-break"><div class="cell-label">lunch break</div></td><td class="cell-break"><div class="cell-label">lunch break</div></td><td class="cell-break"><div class="cell-label">lunch break</div></td><td class="cell-break"><div class="cell-label">lunch break</div></td><td class="cell-break"><div class="cell-label">lunch break</div></td></tr><tr><td class="time-col">14:00–15:00</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">15:00–16:00</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr><tr><td class="time-col">16:00–17:00</td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td><td><div class="cell-slot"><div class="empty-slot">—</div></div></td></tr></tbody></table></div></div>
+        <div class="legend">
+          <span><i style="background:var(--brass-tint); border:1px solid var(--brass);"></i> Lecture</span>
+          <span><i style="background:var(--slate-tint); border:1px solid var(--slate);"></i> Lab</span>
+          <span><i style="background:var(--sage-tint); border:1px solid var(--sage);"></i> Tutorial</span>
+          <span><i style="background:#EAE2CC;"></i> Break</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="./Smart Classroom &amp; Timetable Scheduler_files/app.js.download"></script>
+
+</body></html>

@@ -1,0 +1,8 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+start_project.bat
+app_backup.py
+.vscode/

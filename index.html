@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Classroom &amp; Timetable Scheduler</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ============================= AUTH SCREEN ============================= -->
+<div id="authScreen" class="auth-shell">
+  <div class="ledger-card auth-card">
+    <div class="auth-eyebrow">Smart Classroom &amp; Timetable Scheduler</div>
+    <h1 id="authHeading">Administrator Login</h1>
+    <div class="auth-tabs">
+      <a href="#" id="tabLogin" class="active">Log in</a>
+      <a href="#" id="tabRegister">Register</a>
+    </div>
+    <div id="authMsg"></div>
+
+    <form id="loginForm">
+      <div class="field"><label for="li_login_id">Login ID</label><input type="text" id="li_login_id" required autocomplete="username"></div>
+      <div class="field"><label for="li_password">Password</label><input type="password" id="li_password" required autocomplete="current-password"></div>
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+
+    <form id="registerForm" style="display:none;">
+      <div class="field"><label for="rg_login_id">Login ID</label><input type="text" id="rg_login_id" required></div>
+      <div class="field"><label for="rg_name">Full name</label><input type="text" id="rg_name" required></div>
+      <div class="field"><label for="rg_password">Password</label><input type="password" id="rg_password" required></div>
+      <div class="field"><label for="rg_confirm">Confirm password</label><input type="password" id="rg_confirm" required></div>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+
+    <p class="hint" style="margin-top:20px; text-align:center;">Student or teacher? <a href="/portal">Open the portal →</a></p>
+  </div>
+</div>
+
+<!-- ============================= APP SHELL ============================= -->
+<div id="appShell" class="app-shell" style="display:none;">
+  <aside class="side-rail">
+    <div class="side-brand">Institute Ledger<small>Timetable Scheduler</small></div>
+    <ul class="step-nav" id="sideNav">
+      <li><a href="#" data-section="dashboard" class="nav-link active"><span class="step-idx">•</span> Overview</a></li>
+      <li><a href="#" data-section="hours" class="nav-link"><span class="step-idx">01</span> Institute Hours</a></li>
+      <li><a href="#" data-section="breaks" class="nav-link"><span class="step-idx">02</span> Breaks</a></li>
+      <li><a href="#" data-section="years" class="nav-link"><span class="step-idx">03</span> Years &amp; Semesters</a></li>
+      <li><a href="#" data-section="divisions" class="nav-link"><span class="step-idx">04</span> Divisions &amp; Batches</a></li>
+      <li><a href="#" data-section="faculty" class="nav-link"><span class="step-idx">05</span> Faculty</a></li>
+      <li><a href="#" data-section="classrooms" class="nav-link"><span class="step-idx">06</span> Rooms &amp; Labs</a></li>
+      <li><a href="#" data-section="subjects" class="nav-link"><span class="step-idx">07</span> Subjects &amp; Allocation</a></li>
+      <li><a href="#" data-section="timetable" class="nav-link"><span class="step-idx">08</span> Generate &amp; View</a></li>
+      <li><a href="#" data-section="portal" class="nav-link"><span class="step-idx">09</span> Portal Accounts</a></li>
+    </ul>
+    <div class="side-foot">
+      Signed in as <b id="whoName"></b><br>
+      <a href="#" id="logoutBtn">Log out →</a>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <div id="flashArea"></div>
+
+    <!-- ---------------- Dashboard ---------------- -->
+    <section id="section-dashboard" class="section-panel active">
+      <div class="topbar">
+        <div><div class="pill">Overview</div><h1 id="dashInstName" style="margin-top:8px;">My Institute</h1>
+        <div class="who" id="dashInstHours"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Setup progress</h2><span class="sub">Walk through steps 01–07, then generate the timetable.</span></div>
+        <table><tbody id="dashCounts"></tbody></table>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Timetables</h2><span class="sub">All five views read from one generated schedule.</span></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a href="#" class="btn btn-primary jump-tt" data-view="master">Master timetable</a>
+          <a href="#" class="btn btn-ghost jump-tt" data-view="class">Class-wise</a>
+          <a href="#" class="btn btn-ghost jump-tt" data-view="classroom">Classroom-wise</a>
+          <a href="#" class="btn btn-ghost jump-tt" data-view="lab">Lab-wise</a>
+          <a href="#" class="btn btn-ghost jump-tt" data-view="faculty">Faculty-wise</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- Hours ---------------- -->
+    <section id="section-hours" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">01</div><div><h1>Institute Hours</h1><div class="who">School/college day span, period length, working days &amp; holidays.</div></div></div>
+      <div class="panel">
+        <form id="hoursForm">
+          <div class="field"><label for="h_name">Institute name</label><input type="text" id="h_name"></div>
+          <div class="field-row">
+            <div class="field"><label for="h_start">Day starts at</label><input type="time" id="h_start" required></div>
+            <div class="field"><label for="h_end">Day ends at</label><input type="time" id="h_end" required></div>
+            <div class="field"><label for="h_period">Period length (minutes)</label><input type="number" id="h_period" min="20" max="120" required></div>
+          </div>
+          <div class="field"><label>Working days</label><div class="field-row" id="workingDaysBox"></div></div>
+          <div class="field"><label>Holidays (weekly off)</label><div class="field-row" id="holidaysBox"></div></div>
+          <div class="wizard-nav"><span></span><button type="submit" class="btn btn-primary">Save &amp; continue →</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------------- Breaks ---------------- -->
+    <section id="section-breaks" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">02</div><div><h1>Short Breaks &amp; Lunch</h1><div class="who">Add as many as your institute needs.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a break</h2></div>
+        <form id="breakForm">
+          <div class="field-row">
+            <div class="field"><label for="b_label">Label</label><input type="text" id="b_label" placeholder="Lunch Break" required></div>
+            <div class="field"><label for="b_kind">Type</label><select id="b_kind"><option value="short">Short break</option><option value="lunch">Lunch break</option></select></div>
+            <div class="field"><label for="b_start">Starts</label><input type="time" id="b_start" required></div>
+            <div class="field"><label for="b_end">Ends</label><input type="time" id="b_end" required></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add break</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Configured breaks</h2></div>
+        <table><tr><th>Label</th><th>Type</th><th>Window</th><th></th></tr><tbody id="breaksList"></tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="hours">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="years">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Years ---------------- -->
+    <section id="section-years" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">03</div><div><h1>Years &amp; Semesters</h1><div class="who">Choose the term, then the year — semester number fills in automatically.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a year/semester</h2></div>
+        <form id="yearForm">
+          <div class="field-row">
+            <div class="field"><label for="y_parity">Term</label><select id="y_parity"><option value="odd">Odd semester</option><option value="even">Even semester</option></select></div>
+            <div class="field"><label for="y_label">Year</label><select id="y_label"></select></div>
+            <div class="field"><label for="y_sem">Semester</label><input type="text" id="y_sem" class="mono" readonly></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add year/semester</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Configured</h2></div>
+        <table><tr><th>Year</th><th>Term</th><th>Semester</th><th></th></tr><tbody id="yearsList"></tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="breaks">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="divisions">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Divisions ---------------- -->
+    <section id="section-divisions" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">04</div><div><h1>Divisions &amp; Batches</h1><div class="who">e.g. SY A, SY B, SY C, each with a class teacher; split into batches for labs.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a division</h2></div>
+        <form id="divisionForm">
+          <div class="field-row">
+            <div class="field"><label for="d_year">Year / Semester</label><select id="d_year" required></select></div>
+            <div class="field"><label for="d_name">Division name</label><input type="text" id="d_name" placeholder="SY A" required></div>
+            <div class="field"><label for="d_teacher">Class teacher</label><input type="text" id="d_teacher" placeholder="Prof. Rao"></div>
+            <div class="field"><label for="d_strength">No. of students</label><input type="number" id="d_strength" min="0" value="60"></div>
+            <div class="field"><label for="d_room_mode">Classroom</label>
+              <select id="d_room_mode"><option value="any" selected>Any classroom</option><option value="fixed">Specific classroom…</option></select>
+              <input type="text" id="d_room" list="roomOptions" placeholder="CSAMCR-06" autocomplete="off" style="display:none; margin-top:6px;">
+              <div class="hint" id="d_room_hint">Lectures go to any free classroom, but back-to-back periods always stay in the same room. After a break or a lab the room may change.</div></div>
+          </div>
+          <datalist id="roomOptions"></datalist>
+          <button type="submit" class="btn btn-primary">Add division</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Divisions &amp; their batches</h2></div>
+        <div id="divisionsList"></div>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="years">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="faculty">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Faculty ---------------- -->
+    <section id="section-faculty" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">05</div><div><h1>Faculty</h1><div class="who">Three ways to add faculty: type them in, download the demo Excel sheet and fill it, or upload a finished file.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Option 1 — Add faculty manually</h2></div>
+        <form id="facultyForm">
+          <div class="field-row">
+            <div class="field"><label for="f_name">Name</label><input type="text" id="f_name" placeholder="Prof. Anita Deshmukh" required></div>
+            <div class="field"><label for="f_desig">Designation</label><input type="text" id="f_desig" placeholder="Associate Professor"></div>
+            <div class="field"><label for="f_quals">Qualified subjects (comma separated codes)</label><input type="text" id="f_quals" placeholder="CS301, CS304"></div>
+            <div class="field"><label for="f_max">Max periods/day</label><input type="number" id="f_max" value="6" min="1" max="10"></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add faculty</button>
+        </form>
+      </div>
+      <div class="panel" id="demoPanel">
+        <div class="panel-head"><h2>Option 2 — Demo sheet</h2><span class="sub">Download, fill in, then upload it in Option 3.</span></div>
+        <p class="hint" style="margin:0 0 14px;">The demo sheet already has the right headings (Name of Faculty, Designation, Max Periods per Day, Class, Course Name (Course Code), Theory, Tutorial, Practical…) and two sample teachers that use your own division names. Replace the sample rows with real data, save, and upload.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <a class="btn btn-primary" href="/api/faculty-demo-sheet" id="demoDownload">⬇ Download demo sheet (.xlsx)</a>
+          <span class="hint" id="demoStatus"></span>
+        </div>
+        <details style="margin-top:16px;">
+          <summary style="cursor:pointer; font-weight:600; font-size:.85rem; color:var(--ink-soft);">Use my own demo sheet instead</summary>
+          <form id="demoUploadForm" style="margin-top:12px;">
+            <div class="field"><label for="demo_file">Your Excel sheet (.xlsx) — e.g. your college's own workload format</label><input type="file" id="demo_file" accept=".xlsx,.xlsm" required></div>
+            <button type="submit" class="btn btn-ghost">Save as the demo sheet</button>
+            <button type="button" class="btn btn-ghost" id="demoReset" style="display:none;">Restore the built-in demo</button>
+          </form>
+          <div id="demoMsg"></div>
+        </details>
+      </div>
+      <div class="panel" id="importPanel">
+        <div class="panel-head"><h2>Option 3 — Upload an Excel / PDF file</h2><span class="sub">Instead of typing each person — Excel, CSV or PDF.</span></div>
+        <form id="importForm">
+          <div class="field">
+            <label for="imp_file">Faculty load sheet (.xlsx, .xls, .csv or .pdf)</label>
+            <input type="file" id="imp_file" accept=".xlsx,.xlsm,.xls,.csv,.pdf" required>
+            <div class="hint">Works with a workload sheet like <b>Sr. No · Name of Faculty · Designation · Class · Course Name (Course Code) · Theory · Tutorial · Practical · No. of Divisions · Sum</b> — the code inside the brackets, the hours and the class text (e.g. <i>SY(AIML)-B</i>) are all read as written. Simpler sheets work too: only <b>Faculty Name</b> and a <b>Course/Subject Code</b> are required; <b>Max Periods per Day</b>, <b>Division</b> and <b>Batch</b> are optional. Imported people appear in the list below; the allocations also appear in step 07. A subject not yet set up is created from the file.</div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="importBtn">Read file &amp; allocate</button>
+        </form>
+        <div id="importReport"></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Faculty list</h2></div>
+        <table><tr><th>Name</th><th>Designation</th><th>Qualified for</th><th>Max/day</th><th></th></tr><tbody id="facultyList"></tbody></table>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Workload distribution</h2><span class="sub">Laid out like the college workload sheet; hours are in hours per week.</span></div>
+        <div class="tt-wrap"><table id="workloadTable">
+          <thead><tr><th>Sr. No.</th><th>Name of Faculty</th><th>Designation</th><th>Class</th><th>Course Name (Course Code)</th><th>Theory</th><th>Tutorial</th><th>Practical</th><th>No. of Divisions</th><th>Sum</th></tr></thead>
+          <tbody id="workloadBody"></tbody></table></div>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="divisions">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="classrooms">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Classrooms ---------------- -->
+    <section id="section-classrooms" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">06</div><div><h1>Classrooms &amp; Labs</h1><div class="who">Room number, type, and capacity.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a room</h2></div>
+        <form id="classroomForm">
+          <div class="field-row">
+            <div class="field"><label for="c_room">Room / lab number</label><input type="text" id="c_room" placeholder="LH-204" required></div>
+            <div class="field"><label for="c_type">Type</label><select id="c_type"><option value="classroom">Classroom</option><option value="lab">Lab</option></select></div>
+            <div class="field"><label for="c_cap">Capacity</label><input type="number" id="c_cap" value="60" min="1" required></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add room</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Rooms</h2></div>
+        <table><tr><th>Room</th><th>Type</th><th>Capacity</th><th></th></tr><tbody id="classroomsList"></tbody></table>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="faculty">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="subjects">Continue →</a></div>
+    </section>
+
+    <!-- ---------------- Subjects ---------------- -->
+    <section id="section-subjects" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">07</div><div><h1>Subjects &amp; Faculty Allocation</h1><div class="who">Lecture / Lab / Tutorial, weekly load, syllabus upload, special-case constraints.</div></div></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Add a subject</h2></div>
+        <form id="subjectForm">
+          <div class="field-row">
+            <div class="field"><label for="s_year">Year / Semester</label><select id="s_year" required></select></div>
+            <div class="field"><label for="s_code">Subject code</label><input type="text" id="s_code" placeholder="CS304" required></div>
+            <div class="field"><label for="s_name">Subject name</label><input type="text" id="s_name" placeholder="Database Systems" required></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="s_type">Delivery type</label><select id="s_type"><option value="lecture">Lecture</option><option value="lab">Lab</option><option value="tutorial">Tutorial</option></select>
+              <div class="hint">Lecture = 1 period. Lab/Tutorial = 2 back-to-back periods, same faculty.</div></div>
+            <div class="field"><label for="s_lpw">Sessions / week</label><input type="number" id="s_lpw" value="3" min="1" max="10" required></div>
+            <div class="field"><label for="s_syllabus">Syllabus (PDF/DOC)</label><input type="file" id="s_syllabus"></div>
+          </div>
+          <h3 style="margin-top:22px;">Special-case constraints</h3>
+          <div class="field-row">
+            
+            <div class="field">
+              <label for="s_priority">Period priority</label>
+              <select id="s_priority">
+                <option value="before_lunch">1. Before lunch break</option>
+                <option value="after_lunch">2. After lunch break</option>
+                <option value="any" selected>3. Any time</option>
+                <option value="first">4. First period</option>
+                <option value="last">5. Last period</option>
+              </select>
+              <div class="hint" id="s_priority_hint">Placed there first; if that is impossible the solver uses another slot. Labs never go in the first two periods.</div>
+            </div>
+            <div class="field">
+              <label for="s_maxday">Max lectures of this subject per day</label>
+              <select id="s_maxday">
+                <option value="1">1 per day</option>
+                <option value="2" selected>2 per day</option>
+                <option value="3">3 per day</option>
+              </select>
+              <div class="hint">Applies to lectures. The solver still spreads them over different days first.</div>
+            </div>
+
+            <div class="field"><label>Externally fixed day(s) (optional)</label><div class="field-row" id="s_fixedday_box"></div>
+              <div class="hint">Check as many as apply. Leave all unchecked to let the solver choose.</div></div>
+            <div class="field"><label style="font-weight:400; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="s_multi" style="width:auto;"> Multiple faculty co-teach (e.g. project presentations)</label>
+              <div class="hint">Then, when allocating below, check 2+ faculty in one submit — they'll share the same session.</div></div>
+          </div>
+          <div class="field">
+            <label>Combine with these divisions (same time, split by room)</label><div class="field-row" id="s_combdiv_box"></div>
+            <div class="hint">List narrows to the year you picked above. Check SY A, SY B, SY C etc. to combine them. (To merge <b>batches</b> within one division for a lab — one teacher across two batches — do that when allocating faculty below, not here.)</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add subject</button>
+        </form>
+      </div>
+      <div class="panel"><div class="panel-head"><h2>Subjects &amp; faculty allocation</h2></div>
+        <div id="subjectsList"></div>
+      </div>
+      <div class="wizard-nav"><a href="#" class="btn btn-ghost nav-link" data-section="classrooms">← Back</a><a href="#" class="btn btn-primary nav-link" data-section="timetable">Generate timetable →</a></div>
+    </section>
+
+    <!-- ---------------- Timetable ---------------- -->
+    <section id="section-timetable" class="section-panel">
+      <div class="topbar">
+        <div><div class="pill" id="ttPill">master</div><h1 id="ttTitle" style="margin-top:8px;">Master Timetable</h1><div class="who" id="ttSubtitle"></div></div>
+        <button id="generateBtn" class="btn btn-primary">↻ Generate / Regenerate</button>
+      </div>
+      <div class="tt-toolbar">
+        <button class="btn btn-ghost btn-sm tt-tab active" data-view="master">Master</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="class">Class-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="classroom">Classroom-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="lab">Lab-wise</button>
+        <button class="btn btn-ghost btn-sm tt-tab" data-view="faculty">Faculty-wise</button>
+        <select id="ttPicker" style="display:none; max-width:240px;"></select>
+      </div>
+      <div id="ttSummary"></div>
+      <div class="panel">
+        <div id="ttGridWrap"><p class="hint">Set up institute hours (step 01) first, then Generate.</p></div>
+        <div class="legend">
+          <span><i style="background:var(--brass-tint); border:1px solid var(--brass);"></i> Lecture</span>
+          <span><i style="background:var(--slate-tint); border:1px solid var(--slate);"></i> Lab</span>
+          <span><i style="background:var(--sage-tint); border:1px solid var(--sage);"></i> Tutorial</span>
+          <span><i style="background:#EAE2CC;"></i> Break</span>
+        </div>
+      </div>
+          <div class="panel" id="pdfPanel">
+        <div class="panel-head"><h3>Download timetable as editable PDF</h3><span class="sub">Uses the view selected above. Every cell stays editable in a PDF reader.</span></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" id="dlDefaultBtn" class="btn btn-primary">⬇ Download editable PDF</button>
+          <button type="button" id="dlTemplateToggle" class="btn btn-ghost">Upload template / last timetable…</button>
+        </div>
+        <form id="templateForm" style="display:none; margin-top:20px;">
+          <div class="field">
+            <label for="tp_file">Template / last timetable (image or PDF)</label>
+            <input type="file" id="tp_file" accept=".pdf,.png,.jpg,.jpeg">
+            <div class="hint" id="tpFileHint">The file is saved as your reference. Heading and signature wording below are taken from it — check they match.</div>
+          </div>
+          <div class="field-row">
+            <div><label for="tp_college">College name</label><input type="text" id="tp_college"></div>
+            <div><label for="tp_dept">Department line</label><input type="text" id="tp_dept"></div>
+          </div>
+          <div class="field-row">
+            <div><label for="tp_title">Title line</label><input type="text" id="tp_title"></div>
+            <div><label for="tp_hod">HOD name</label><input type="text" id="tp_hod"></div>
+            <div><label for="tp_hoddept">HOD department</label><input type="text" id="tp_hoddept"></div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary">Save template &amp; generate new timetable PDF</button>
+            <a href="#" id="tpViewFile" class="btn btn-ghost" style="display:none;">View saved file</a>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------------- Portal accounts ---------------- -->
+    <section id="section-portal" class="section-panel">
+      <div class="wizard-head"><div class="step-badge">09</div><div><h1>Portal Accounts</h1><div class="who">Logins for the student and teacher portals at <code>/portal</code>. Both portals read the same timetable you edit here, so every change reaches them automatically.</div></div></div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Add a login</h2><span class="sub">Teacher = one faculty member's own timetable. Student = a division.</span></div>
+        <form id="portalForm">
+          <div class="field-row">
+            <div class="field"><label for="pa_role">Portal</label><select id="pa_role"><option value="teacher">Teacher</option><option value="student">Student</option></select></div>
+            <div class="field"><label for="pa_link" id="pa_link_label">Faculty member</label><select id="pa_link"></select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="pa_name">Display name</label><input type="text" id="pa_name" required></div>
+            <div class="field"><label for="pa_login">Login ID</label><input type="text" id="pa_login" required autocomplete="off"></div>
+            <div class="field"><label for="pa_pass">Password</label><input type="text" id="pa_pass" required autocomplete="off"></div>
+          </div>
+          <button type="submit" class="btn btn-primary">Create login</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Create in bulk</h2><span class="sub">Skips anyone who already has a login.</span></div>
+        <div class="field-row">
+          <div class="field"><label for="pb_pass">Starting password</label><input type="text" id="pb_pass" placeholder="e.g. Welcome@123"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost" id="bulkTeachers">A login for every faculty member</button>
+          <button type="button" class="btn btn-ghost" id="bulkStudents">One shared login per division</button>
+        </div>
+        <div class="hint">Login IDs are made from the name (e.g. <code>sy_a</code>). Students are not stored individually, so a division shares one login.</div>
+        <div id="bulkResult"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Existing logins</h2></div>
+        <table><tr><th>Portal</th><th>Name</th><th>Login ID</th><th>Linked to</th><th></th></tr><tbody id="portalList"></tbody></table>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

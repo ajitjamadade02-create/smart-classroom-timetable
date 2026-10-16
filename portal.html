@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timetable Portal — Smart Classroom &amp; Timetable Scheduler</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ============================= PORTAL LOGIN ============================= -->
+<div id="authScreen" class="auth-shell">
+  <div class="ledger-card auth-card">
+    <div class="auth-eyebrow">Smart Classroom &amp; Timetable Scheduler</div>
+    <h1 id="authHeading">Student Portal</h1>
+    <div class="auth-tabs">
+      <a href="#" id="roleStudent" class="active">Student</a>
+      <a href="#" id="roleTeacher">Teacher</a>
+    </div>
+    <div id="authMsg"></div>
+    <form id="loginForm">
+      <div class="field"><label for="li_login_id">Login ID</label><input type="text" id="li_login_id" required autocomplete="username"></div>
+      <div class="field"><label for="li_password">Password</label><input type="password" id="li_password" required autocomplete="current-password"></div>
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+    <p class="hint" style="margin-top:20px; text-align:center;">Your login is created by the administrator. · <a href="/">Administrator login →</a></p>
+  </div>
+</div>
+
+<!-- ============================= PORTAL SHELL ============================= -->
+<div id="appShell" class="app-shell" style="display:none;">
+  <aside class="side-rail">
+    <div class="side-brand">Institute Ledger<small id="roleLabel">Portal</small></div>
+    <ul class="step-nav" id="sideNav">
+      <li><a href="#" data-section="timetable" class="nav-link active"><span class="step-idx">▦</span> Timetables</a></li>
+      <li><a href="#" data-section="rollcall" class="nav-link"><span class="step-idx">✓</span> Roll call</a></li>
+      <li><a href="#" data-section="notifications" class="nav-link"><span class="step-idx">!</span> Updates <span id="notifBadge" class="notif-badge"></span></a></li>
+    </ul>
+    <div class="side-foot">
+      Signed in as <b id="whoName"></b><br>
+      <a href="#" id="logoutBtn">Log out →</a>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <div id="flashArea"></div>
+
+    <section id="section-timetable" class="section-panel active">
+      <div class="topbar">
+        <div>
+          <div class="pill" id="ttPill">timetable</div>
+          <h1 id="ttTitle" style="margin-top:8px;">Timetable</h1>
+          <div class="who" id="ttSubtitle"></div>
+        </div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <span class="live-note"><i></i> Updates appear here automatically</span>
+          <button class="btn btn-primary" id="downloadPdfBtn">⬇ Download PDF</button>
+        </div>
+      </div>
+      <div class="tt-toolbar">
+        <span id="ttTabs" style="display:contents;"></span>
+        <select id="ttPicker" style="display:none; max-width:260px;"></select>
+      </div>
+      <div class="panel">
+        <div id="ttGridWrap"><p class="hint">Loading…</p></div>
+        <div class="legend">
+          <span><i style="background:var(--brass-tint); border:1px solid var(--brass);"></i> Lecture</span>
+          <span><i style="background:var(--slate-tint); border:1px solid var(--slate);"></i> Lab</span>
+          <span><i style="background:var(--sage-tint); border:1px solid var(--sage);"></i> Tutorial</span>
+          <span><i style="background:#EAE2CC;"></i> Break</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="section-rollcall" class="section-panel">
+      <div class="topbar">
+        <div><div class="pill">roll call</div><h1 id="rcTitle" style="margin-top:8px;">Roll call</h1>
+          <div class="who">The class roll call uploaded by the administrator.</div></div>
+        <select id="rcPicker" style="display:none; max-width:260px;"></select>
+      </div>
+      <div class="panel"><div id="rcBody"><p class="hint">Loading…</p></div></div>
+    </section>
+
+    <section id="section-notifications" class="section-panel">
+      <div class="topbar">
+        <div><div class="pill">updates</div><h1 style="margin-top:8px;">Timetable updates</h1>
+          <div class="who">Changes the administrator made that concern you.</div></div>
+        <button class="btn btn-ghost" id="markReadBtn">Mark all as read</button>
+      </div>
+      <div class="panel" style="padding:0;"><div id="notifList"></div></div>
+    </section>
+  </div>
+</div>
+
+<div id="toastHost" class="toast-host"></div>
+<script src="/portal.js"></script>
+</body>
+</html>
